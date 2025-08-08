@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gym Goal Tracker (with Cookies)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+      background-color: #f4f4f4;
+      color: #333;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+
+    .checkboxes label {
+      margin: 5px 0;
+      font-weight: normal;
+    }
+
+    .checkboxes {
+      margin: 15px 0;
+    }
+
+    #streak {
+      margin-top: 20px;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    button {
+      padding: 10px 15px;
+      margin-top: 10px;
+      width: 100%;
+      background-color: #222;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #444;
+    }
+
+    #saveIndicator {
+      text-align: center;
+      color: green;
+      margin-top: 5px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>Vacation Gym Tracker</h2>
+
+  <label>Push-ups:</label>
+  <input type="number" id="pushups" placeholder="Enter number">
+
+  <label>Pull-ups:</label>
+  <input type="number" id="pullups" placeholder="Enter number">
+
+  <label>Crunches:</label>
+  <input type="number" id="crunches" placeholder="Enter number">
+
+  <div class="checkboxes">
+    <label><input type="checkbox" id="pushupsDone"> Push-ups done</label>
+    <label><input type="checkbox" id="pullupsDone"> Pull-ups done</label>
+    <label><input type="checkbox" id="crunchesDone"> Crunches done</label>
+  </div>
+
+  <button id="saveButton" onclick="saveProgress()">Save Today's Progress</button>
+  <div id="saveIndicator">Saved!</div>
+
+  <div id="streak">Streak: <span id="streakCount">0</span> days</div>
+
+  <script>
+    // ----- Cookie Helpers -----
+    function setCookie(name, value, days = 365) {
+      const date = new Date();
+      date.setTime(date.getTime() + (days*24*60*60*1000));
+      document.cookie = name + "=" + encodeURIComponent(value) + ";expires=" + date.toUTCString() + ";path=/";
+    }
+
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    }
+
+    // ----- Initialization -----
+    let streak = parseInt(getCookie('streak')) || 0;
+    document.getElementById('streakCount').innerText = streak;
+
+    function loadValues() {
+      document.getElementById('pushups').value = getCookie('pushups') || '';
+      document.getElementById('pullups').value = getCookie('pullups') || '';
+      document.getElementById('crunches').value = getCookie('crunches') || '';
+
+      document.getElementById('pushupsDone').checked = getCookie('pushupsDone') === 'true';
+      document.getElementById('pullupsDone').checked = getCookie('pullupsDone') === 'true';
+      document.getElementById('crunchesDone').checked = getCookie('crunchesDone') === 'true';
+    }
+
+    loadValues();
+
+    // Save form changes
+    ['pushups', 'pullups', 'crunches'].forEach(id => {
+      document.getElementById(id).addEventListener('input', e => {
+        setCookie(id, e.target.value);
+      });
+    });
+
+    ['pushupsDone', 'pullupsDone', 'crunchesDone'].forEach(id => {
+      document.getElementById(id).addEventListener('change', e => {
+        setCookie(id, e.target.checked);
+      });
+    });
+
+    function saveProgress() {
+      const push = document.getElementById('pushupsDone').checked;
+      const pull = document.getElementById('pullupsDone').checked;
+      const crunch = document.getElementById('crunchesDone').checked;
+      const completed = push && pull && crunch;
+
+      setCookie('todayCompleted', completed ? 'true' : 'false');
+
+      const btn = document.getElementById('saveButton');
+      const indicator = document.getElementById('saveIndicator');
+      btn.style.backgroundColor = '#28a745';
+      indicator.style.display = 'block';
+      setTimeout(() => {
+        btn.style.backgroundColor = '#222';
+        indicator.style.display = 'none';
+      }, 2000);
+    }
+
+    function resetCheckboxes() {
+      ['pushupsDone', 'pullupsDone', 'crunchesDone'].forEach(id => {
+        document.getElementById(id).checked = false;
+        setCookie(id, 'false');
+      });
+    }
+
+    function checkMidnight() {
+      const lastDate = getCookie('lastCheckDate');
+      const today = new Date().toDateString();
+
+      if (lastDate !== today) {
+        const completed = getCookie('todayCompleted') === 'true';
+
+        if (completed) {
+          streak += 1;
+          setCookie('streak', streak);
+        } else {
+          streak = 0;
+          setCookie('streak', 0);
+        }
+
+        setCookie('lastCheckDate', today);
+        setCookie('todayCompleted', 'false');
+        resetCheckboxes();
+        document.getElementById('streakCount').innerText = streak;
+      }
+    }
+
+    checkMidnight();
+    setInterval(checkMidnight, 60 * 1000);
+  </script>
+</body>
+</html>
+
